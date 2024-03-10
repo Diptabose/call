@@ -1,5 +1,5 @@
-import Peer, { MediaConnection, PeerError, PeerErrorType } from 'peerjs';
-import React, { MutableRefObject, useEffect, useRef, useState } from 'react'
+import Peer, { MediaConnection, PeerError } from 'peerjs';
+import React, { useEffect, useState } from 'react'
 
 
 
@@ -13,17 +13,17 @@ const usePeer = (id: string) => {
     const [connected, setConnected] = useState<boolean>(false);
 
     const [mediaConnection, setMediaConnection] = useState<MediaConnection>();
-    const [incomingMediaConnection, setIncomingMediaConnection] = useState<MediaConnection>();
-
     const [isIncomingConnection, setIncomingConnection] = useState<boolean>(false);
+
+    const [callConnected, setCallConnected] = useState<boolean>(false);
 
     useEffect(() => {
         if (!connected) {
-            console.log("Inside effect ", id);
             import("peerjs").then(({ default: Peer }) => {
                 const peer = new Peer(id);
                 peer.on('open', handlePeerOpen);
                 peer.on('error', handlePeerError);
+                peer.on('call', handleIncommingCall);
                 setPeer(peer);
             });
         }
@@ -31,41 +31,52 @@ const usePeer = (id: string) => {
 
 
     function handleIncommingCall(call: MediaConnection) {
-
+        setMediaConnection(call);
+        setIncomingConnection(true);
     }
 
 
-    function liftCall(stream: MediaStream) {
-        incomingMediaConnection?.answer(stream);
+    function liftCall(stream: MediaStream): Promise<MediaStream> {
+
+        return new Promise((resolve, reject) => {
+            mediaConnection?.answer(stream);
+            mediaConnection?.on('stream', (otherStream) => {
+                setCallConnected(true);
+                resolve(otherStream)
+            })
+            mediaConnection?.on('error', (err) => {
+                reject(err);
+            })
+        })
     }
 
     function call(reciver_id: string, stream: MediaStream): Promise<MediaStream> {
 
         return new Promise((resolve, reject) => {
-            const recieverConnection = peer?.call(reciver_id, stream, {
-                metadata: {
-                    purpose: "Test call",
-                    data: "Helloworld"
-                }
-            });
-
+            const recieverConnection = peer?.call(reciver_id, stream);
             setMediaConnection(recieverConnection);
-
             recieverConnection?.on('stream', (stream: MediaStream) => {
+                setCallConnected(true);
                 resolve(stream);
             });
             recieverConnection?.on('error', (err) => {
                 reject(err);
             });
-
-
         });
     }
 
 
+    /**
+     * Show on when call dial up and when connected.
+     * 
+     * When connected Start the timer. And store it, for both members.
+     * The connection can be known from the resolve(stream) thats the momemt where both gets connected.
+     */
     function disconnectCall() {
         mediaConnection?.close();
     }
+
+
 
     function handlePeerOpen(id: string) {
         console.log("The peer connected to ", id);
@@ -82,7 +93,7 @@ const usePeer = (id: string) => {
                 break;
         }
     }
-    return { peer, connected, audioStream, call, disconnectCall, isIncomingConnection, liftCall };
+    return { peer, connected, audioStream, call, disconnectCall, isIncomingConnection, liftCall, callConnected };
 }
 
-export default usePeer
+export default usePeer;

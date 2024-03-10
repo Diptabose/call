@@ -7,7 +7,7 @@ const HomeLayout = ({ children }: { children: ReactNode }) => {
       <div className="sticky top-0 z-50">
         <TabNavigator />
       </div>
-      <div className="flex-1 overflow-y-auto">{children}</div>
+      <div className="flex-1 overflow-y-auto p-2">{children}</div>
     </div>
   );
 };
