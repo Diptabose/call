@@ -13,6 +13,9 @@ const usePeer = (id: string) => {
     const [connected, setConnected] = useState<boolean>(false);
 
     const [mediaConnection, setMediaConnection] = useState<MediaConnection>();
+    const [incomingMediaConnection, setIncomingMediaConnection] = useState<MediaConnection>();
+
+    const [isIncomingConnection, setIncomingConnection] = useState<boolean>(false);
 
     useEffect(() => {
         if (!connected) {
@@ -27,6 +30,14 @@ const usePeer = (id: string) => {
     }, [id, connected]);
 
 
+    function handleIncommingCall(call: MediaConnection) {
+
+    }
+
+
+    function liftCall(stream: MediaStream) {
+        incomingMediaConnection?.answer(stream);
+    }
 
     function call(reciver_id: string, stream: MediaStream): Promise<MediaStream> {
 
@@ -71,8 +82,7 @@ const usePeer = (id: string) => {
                 break;
         }
     }
-    
-    return { peer, connected, audioStream, call, disconnectCall };
+    return { peer, connected, audioStream, call, disconnectCall, isIncomingConnection, liftCall };
 }
 
 export default usePeer
